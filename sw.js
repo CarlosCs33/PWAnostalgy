@@ -1,7 +1,6 @@
 const CACHE_NAME = 'proyectos-pwa-v2';
 const PRECACHE_URLS = [
   './',
-  './nostalgyCore.html?homescreen=v2',
   './nostalgyCore.html',
   './manifest.webmanifest',
   './icons/icon-192.png',

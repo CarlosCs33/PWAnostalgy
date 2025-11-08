@@ -6,18 +6,23 @@
     <title>Nostalgy.Core</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css" rel="stylesheet">
-
+    
+    <!--Conecta el archivo manifest que describe tu app (nombre, iconos, etc.) para que sea instalable.-->
     <link rel="manifest" href="manifest.webmanifest" />
+    
     <meta name="theme-color" content="#0d6efd" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-
+    
     <style>
         .thumb { height: 70px; object-fit: cover; border-radius: .35rem; }
         .thumbs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+        
+        /*Estilo de body donde se cambia el color del fondo*/
         body { background-image: linear-gradient(to bottom, #0d6efd, navy); background-repeat: no-repeat; min-height: 100vh;}
-         /* Botón de instalación visible y flotante */
+        
+         /* Estilo del boton flotante para instalar */
         #btnInstall {
             position: fixed; right: 16px; bottom: 16px;
             padding: 12px 16px; border: 0; border-radius: 10px;
@@ -41,7 +46,7 @@
         </div>
         <div id="productoContainer" class="row g-4"></div>
     </div>
-    <!--Modal: Formulario-->
+    <!--Modal del formulario-->
     <div class="modal fade" id="productoModal" tabindex="-1" aria-labelledby="productoModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -110,16 +115,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        /*Array que contiene todos los productos cargados o creados*/
         let productos = [];
         
         const LS_KEY = 'productos';
 
         const modal = new bootstrap.Modal(document.getElementById('productoModal'));
 
+        /*Funcion que convierte el array 'productos' a texto JSON y lo guarda en el LocalStorage del navegador*/
         function saveToLS() {
             localStorage.setItem(LS_KEY, JSON.stringify(productos));
         }
 
+        /*Funcion donde se intenta leer los datos desde LocalStorage si existen, los convierte a un array*/
         function loadFromLS() {
             try {
                 const raw = localStorage.getItem(LS_KEY);
@@ -135,6 +143,7 @@
             return Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
+        /*Funcion que convierte los archivos de imagen en texto*/
         function readFilesAsDataURLs(filelist) {
             const files = Array.from(filelist || []);
             const readers = files.map(
@@ -149,6 +158,7 @@
             return Promise.all(readers);
         }
 
+        /*Funcion donde se dibuja las tarjetas en el HTML*/
         function renderProjects() {
             const container = document.getElementById('productoContainer');
             container.innerHTML = '';
@@ -207,7 +217,7 @@
                 container.appendChild(col);
             });
 
-            // esta funcion es para eliminar proyectos
+            /*Funcion para eliminar proyectos*/
             container.querySelectorAll('[data-action="delete"]').forEach((btn) => {
                 btn.addEventListener('click', (e) => {
                     const i = Number(e.currentTarget.getAttribute('data-index'));
@@ -218,7 +228,7 @@
             });
         }
 
-        //toast helper
+        /*Función para mostrar notificaciones toast*/
         function showToast(msg, type = 'success') {
             const toast = document.createElement('div');
             toast.className = 'toast align-items-center text-bg-' + (type === 'success' ? 'success' : 'danger') + ' position-fixed top-0 end-0 m-3';
@@ -236,7 +246,6 @@
             setTimeout (() => toast.remove(), 3500);
         }
 
-        // submit del formulario con lectura de imágenes 
         document.getElementById('productoForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
@@ -250,7 +259,7 @@
             }
 
             const proyecto = {
-                //este campo es para generar un id unico en el local storage
+                /*Campo para generar un id unico en el local storage*/
                 id: crypto.randomUUID(),
                 nombre: document.getElementById('nombreProducto').value.trim(),
                 clave: document.getElementById('clave').value.trim(),
@@ -258,26 +267,22 @@
                 estado: document.getElementById('estadoProducto').value,
                 stock: document.getElementById('stock').value.trim(),
                 descripcion: document.getElementById('descripcion').value.trim(),
-                imagenes, //[{name,type,dataUrl}, ...]
+                imagenes,
             };
 
             productos.push(proyecto);
             saveToLS();
             renderProjects();
 
-            // limpiar y cerrar
             this.reset();
             modal.hide();
             showToast('Producto guardado correctamente');
         });
 
-
-        // cargar al iniciar
         document.addEventListener('DOMContentLoaded', () => {
             loadFromLS();
             renderProjects();
 
-            // Evento: Limpiar todo el LocalStorage
             document.getElementById('clearAll').addEventListener('click', () => {
                 if (confirm('¿Seguro que deseas borrar todos los productos guardados en este navegador?')) {
                     productos = [];
@@ -289,46 +294,51 @@
             });
         });
     </script>
+    
     <button id="btnInstall" hidden>Instalar app</button>
 
     <script>
-    // Registrar Service Worker
-    if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('SW registrado:', reg.scope))
-        .catch(err => console.warn('SW fallo:', err));
-    });
-    }
-
-    // Manejo del "beforeinstallprompt" para mostrar botón de instalar
-    let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    const btn = document.getElementById('btnInstall');
-    if (btn) btn.hidden = false;
-    });
-
-    // Click en el botón para lanzar el prompt
-    document.addEventListener('click', async (e) => {
-    if (e.target && e.target.id === 'btnInstall') {
-        if (!deferredPrompt) return;
-        e.target.disabled = true;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log('Instalación:', outcome);
-        deferredPrompt = null;
-        e.target.hidden = true;
-    }
-    });
-
-    // Evento cuando la app fue instalada
-    window.addEventListener('appinstalled', () => {
-    console.log('PWA instalada');
-    const btn = document.getElementById('btnInstall');
-    if (btn) btn.hidden = true;
-    });
+        /*Registrar Service Worker*/
+        /*Es un script que corre en segundo plano y permite que la app funcione offline, maneje cache, etc*/
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW registrado:', reg.scope))
+            .catch(err => console.warn('SW fallo:', err));
+        });
+        }
+    
+        /*Variable para guardar el evento de instalación*/
+        let deferredPrompt = null;
+    
+        /*El navegador dispara este evento si la app es instalable*/
+        window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const btn = document.getElementById('btnInstall');
+        if (btn) btn.hidden = false;
+        });
+    
+        /*Este código es el que maneja el clic en el botón Instalar app*/
+        document.addEventListener('click', async (e) => {
+        if (e.target && e.target.id === 'btnInstall') {
+            if (!deferredPrompt) return;
+            e.target.disabled = true;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log('Instalación:', outcome);
+            deferredPrompt = null;
+            e.target.hidden = true;
+        }
+        });
+    
+        /*Se dispara cuando la PWA ya fue instalada*/
+        window.addEventListener('appinstalled', () => {
+        console.log('PWA instalada');
+        const btn = document.getElementById('btnInstall');
+        if (btn) btn.hidden = true; // Oculta el botón si ya está instalada
+        });
     </script>
+    
 </body>
 </html>
